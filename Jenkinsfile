@@ -19,7 +19,7 @@ pipeline {
 
         stage('Setup Python') {
             steps {
-                echo " Setting up Python environment"
+                echo "Setting up Python environment"
                 sh '''
                 python3 --version
                 python3 -m venv ${VENV}
@@ -52,17 +52,27 @@ pipeline {
                 '''
             }
         }
+
+        stage('Docker Build') {
+            steps {
+                echo "Building Docker image"
+                sh '''
+                docker build -t ${APP_NAME}:latest .
+                '''
+            }
+        }
     }
 
     post {
         success {
-            echo " Pipeline SUCCESS for flask-devops-app"
+            echo "Pipeline SUCCESS for flask-devops-app"
         }
         failure {
-            echo " Pipeline FAILED"
+            echo "Pipeline FAILED"
         }
         always {
-            echo " Cleanup completed"
+            echo "Cleanup completed"
         }
     }
 }
+
