@@ -21,10 +21,10 @@ pipeline {
             steps {
                 echo "Setting up Python environment"
                 sh '''
-                python3 --version
-                python3 -m venv ${VENV}
-                . ${VENV}/bin/activate
-                pip install --upgrade pip
+                    python3 --version
+                    python3 -m venv ${VENV}
+                    . ${VENV}/bin/activate
+                    pip install --upgrade pip
                 '''
             }
         }
@@ -33,12 +33,12 @@ pipeline {
             steps {
                 echo "Installing dependencies"
                 sh '''
-                . ${VENV}/bin/activate
-                if [ -f requirements.txt ]; then
-                    pip install -r requirements.txt
-                else
-                    echo "requirements.txt not found"
-                fi
+                    . ${VENV}/bin/activate
+                    if [ -f requirements.txt ]; then
+                        pip install -r requirements.txt
+                    else
+                        echo "requirements.txt not found"
+                    fi
                 '''
             }
         }
@@ -47,8 +47,8 @@ pipeline {
             steps {
                 echo "Running Flask app test"
                 sh '''
-                . ${VENV}/bin/activate
-                python -c "import flask; print('Flask import successful')"
+                    . ${VENV}/bin/activate
+                    python -c "import flask; print('Flask import successful')"
                 '''
             }
         }
@@ -57,7 +57,7 @@ pipeline {
             steps {
                 echo "Building Docker image"
                 sh '''
-                docker build -t ${APP_NAME}:latest .
+                    docker build -t ${APP_NAME}:latest .
                 '''
             }
         }
@@ -71,13 +71,14 @@ pipeline {
                     passwordVariable: 'DOCKER_PASS'
                 )]) {
                     sh '''
-                    echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
-                    docker tag ${APP_NAME}:latest $DOCKER_USER/${APP_NAME}:latest
-                    docker push $DOCKER_USER/${APP_NAME}:latest
+                        echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
+                        docker tag ${APP_NAME}:latest $DOCKER_USER/${APP_NAME}:latest
+                        docker push $DOCKER_USER/${APP_NAME}:latest
                     '''
                 }
             }
         }
+
     }
 
     post {
@@ -93,6 +94,4 @@ pipeline {
     }
 }
 
-    }
-}
 
