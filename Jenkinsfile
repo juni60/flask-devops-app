@@ -61,11 +61,28 @@ pipeline {
                 '''
             }
         }
+
+        stage('Push Docker Image') {
+            steps {
+                echo "Pushing Docker image to Docker Hub"
+                withCredentials([usernamePassword(
+                    credentialsId: 'dockerhub',
+                    usernameVariable: 'lahaasil',
+                    passwordVariable: 'ahmed608$'
+                )]) {
+                    sh '''
+                    docker login -u $DOCKER_USER -p $DOCKER_PASS
+                    docker tag ${APP_NAME}:latest $DOCKER_USER/${APP_NAME}:latest
+                    docker push $DOCKER_USER/${APP_NAME}:latest
+                    '''
+                }
+            }
+        }
     }
 
     post {
         success {
-            echo "Pipeline SUCCESS for flask-devops-app"
+            echo "Pipeline SUCCESS: Image built & pushed to Docker Hub"
         }
         failure {
             echo "Pipeline FAILED"
