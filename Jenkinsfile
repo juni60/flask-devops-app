@@ -1,10 +1,10 @@
 pipeline {
-    agent {
-        label 'Jenkins-Agent'
-    }
+    agent any
 
     environment {
         APP_NAME = "flask-devops-app"
+        DOCKER_IMAGE = "junaid/flask-devops-app"
+        DOCKER_TAG = "latest"
         VENV = "venv"
     }
 
@@ -12,86 +12,61 @@ pipeline {
 
         stage('Checkout Code') {
             steps {
-                echo "Checking out source code"
-                checkout scm
+                git branch: 'main',
+                    url: 'https://github.com/juni60/flask-devops-app.git',
+                    credentialsId: 'github'
             }
         }
 
-        stage('Setup Python') {
+        stage('Setup Python Environment') {
             steps {
-                echo "Setting up Python environment"
                 sh '''
-                    python3 --version
-                    python3 -m venv ${VENV}
-                    . ${VENV}/bin/activate
-                    pip install --upgrade pip
+                python3 --version
+                python3 -m venv $VENV
+                . $VENV/bin/activate
+                pip install --upgrade pip
+                pip install -r requirements.txt
                 '''
             }
         }
 
-        stage('Install Dependencies') {
+        stage('Run Tests') {
             steps {
-                echo "Installing dependencies"
                 sh '''
-                    . ${VENV}/bin/activate
-                    if [ -f requirements.txt ]; then
-                        pip install -r requirements.txt
-                    else
-                        echo "requirements.txt not found"
-                    fi
+                . $VENV/bin/activate
+                pytest || echo "No tests found"
                 '''
             }
         }
 
-        stage('Run Application Test') {
+        stage('Build Docker Image') {
             steps {
-                echo "Running Flask app test"
                 sh '''
-                    . ${VENV}/bin/activate
-                    python -c "import flask; print('Flask import successful')"
+                docker build -t $DOCKER_IMAGE:$DOCKER_TAG .
                 '''
             }
         }
 
-        stage('Docker Build') {
+        stage('Run Docker Container') {
             steps {
-                echo "Building Docker image"
                 sh '''
-                    docker build -t ${APP_NAME}:latest .
+                docker rm -f flask-app || true
+                docker run -d -p 5000:5000 --name flask-app $DOCKER_IMAGE:$DOCKER_TAG
                 '''
             }
         }
-
-        stage('Push Docker Image') {
-            steps {
-                echo "Pushing Docker image to Docker Hub"
-                withCredentials([usernamePassword(
-                    credentialsId: 'dockerhub',
-                    usernameVariable: 'DOCKER_USER',
-                    passwordVariable: 'DOCKER_PASS'
-                )]) {
-                    sh '''
-                        echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
-                        docker tag ${APP_NAME}:latest $DOCKER_USER/${APP_NAME}:latest
-                        docker push $DOCKER_USER/${APP_NAME}:latest
-                    '''
-                }
-            }
-        }
-
     }
 
     post {
         success {
-            echo "Pipeline SUCCESS: Image built & pushed to Docker Hub"
+            echo "Pipeline completed successfully!"
         }
         failure {
-            echo "Pipeline FAILED"
+            echo "Pipeline failed. Check logs."
         }
         always {
-            echo "Cleanup completed"
+            cleanWs()
         }
     }
 }
-
 
